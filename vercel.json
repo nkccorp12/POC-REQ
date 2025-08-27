@@ -1,6 +1,6 @@
 {
   "functions": {
-    "streamlit_app.py": {
+    "api/index.py": {
       "runtime": "@vercel/python@4.1.0",
       "maxDuration": 60
     }
