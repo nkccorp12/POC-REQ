@@ -1,3 +1,32 @@
+# ML Model & Cache Exclusions (Critical for deployment size)
+.cache/
+.local/
+**/.cache/
+**/__pycache__/
+models/
+**/models/
+**/*.bin
+**/*.pt
+**/*.onnx
+**/*.npy
+**/*.npz
+**/*.h5
+data/
+venv/
+.venv/
+
+# Sentence Transformers Cache
+.sentence_transformers/
+**/sentence_transformers/
+
+# FAISS Index Files
+*.index
+*.faiss
+
+# Hugging Face Cache
+.huggingface/
+**/.huggingface/
+
 # Build artifacts
 __pycache__/
 *.py[cod]
