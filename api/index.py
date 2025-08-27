@@ -80,7 +80,7 @@ def main():
     if is_authenticated():
         current_user = get_current_user()
         st.sidebar.markdown(f"**Logged in as:** {current_user}")
-        if st.sidebar.button("🚪 Logout", type="secondary"):
+        if st.sidebar.button("Logout", type="secondary"):
             logout()
     
     # Search parameters
