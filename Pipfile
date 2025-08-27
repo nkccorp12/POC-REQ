@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+sentence-transformers = "==2.7.0"
+faiss-cpu = "==1.8.0"
+pandas = "==2.2.0"
+numpy = "==1.26.4"
+rdkit-pypi = "==2022.9.5"
+matplotlib = "==3.8.3"
+streamlit = "==1.31.1"
+plotly = "==5.19.0"
+Pillow = "==10.2.0"
+tqdm = "==4.66.1"
+reportlab = "==4.0.4"
+scikit-learn = "==1.4.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
