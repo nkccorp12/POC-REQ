@@ -8,9 +8,7 @@ import base64
 
 # Simple credentials - change these!
 VALID_USERS = {
-    "requisimus": "711b2dd6bcbbea459703a43fbd56cb64",  # symrise
-    "user": "ee11cbb19052e40b07aac0ca060c23ee",         # user  
-    "osme": "7c6a180b36896a0a8c02787eeafb0e4c"          # osme
+    "requisimus": "711b2dd6bcbbea459703a43fbd56cb64"  # symrise
 }
 
 def hash_password(password):
