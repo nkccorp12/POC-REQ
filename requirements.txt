@@ -2,7 +2,7 @@ sentence-transformers==2.7.0
 faiss-cpu==1.8.0
 pandas==2.2.0
 numpy==1.26.4
-rdkit-pypi==2023.9.4
+rdkit-pypi==2022.9.5
 matplotlib==3.8.3
 streamlit==1.31.1
 plotly==5.19.0
