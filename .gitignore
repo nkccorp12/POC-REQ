@@ -67,3 +67,10 @@ streamlit_config.toml
 
 # Vercel
 .vercel
+
+# Installed packages (avoid committing site-packages)
+*.dist-info/
+site-packages/
+pip-wheel-metadata/
+*.pth
+*-stubs/

@@ -1,0 +1,12 @@
+.git
+.vercel
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+data/
+models/
+.cache/
+.local/
+node_modules
