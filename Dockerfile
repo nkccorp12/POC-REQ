@@ -14,5 +14,5 @@ COPY . .
 # Expose port
 EXPOSE 8080
 
-# Start Streamlit app
-CMD ["streamlit", "run", "api/index.py", "--server.port", "8080", "--server.address", "0.0.0.0", "--server.headless", "true"]
+# Start Streamlit app using Render's PORT environment variable
+CMD ["sh", "-c", "streamlit run api/index.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true"]
