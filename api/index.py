@@ -11,6 +11,10 @@ from PIL import Image
 import io
 import base64
 import os
+import sys
+
+# Add parent directory to Python path for module imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import our modules
 from pom_search import search_odor, get_search_engine
