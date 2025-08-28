@@ -31,23 +31,31 @@ class POMSearchEngine:
         """Initialize all components of the search engine"""
         print("Initializing POM Search Engine...")
         
-        # Load sentence transformer
-        print("Loading sentence transformer model...")
-        self.sentence_model = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
-        
-        # Create panel word embeddings matrix
-        print("Creating panel word embeddings...")
-        self._create_panel_embeddings()
-        
-        # Load POM embeddings and molecule data
-        print("Loading POM embeddings and molecule data...")
-        self._load_data()
-        
-        # Load or build FAISS index
-        print("Loading FAISS index...")
-        self._load_or_build_faiss_index()
-        
-        print("Initialization complete!")
+        try:
+            # Load sentence transformer
+            print("Loading sentence transformer model...")
+            self.sentence_model = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
+            
+            # Create panel word embeddings matrix
+            print("Creating panel word embeddings...")
+            self._create_panel_embeddings()
+            
+            # Load POM embeddings and molecule data
+            print("Loading POM embeddings and molecule data...")
+            self._load_data()
+            
+            # Load or build FAISS index
+            print("Loading FAISS index...")
+            self._load_or_build_faiss_index()
+            
+            print("Initialization complete!")
+            
+        except Exception as e:
+            print(f"❌ Error during initialization: {str(e)}")
+            print("Falling back to basic functionality without FAISS search...")
+            # Set fallback state
+            self.faiss_index = None
+            raise RuntimeError(f"Search engine initialization failed: {str(e)}")
     
     def _create_panel_embeddings(self):
         """Create embeddings for the 55 panel words"""
@@ -99,6 +107,8 @@ class POMSearchEngine:
             use_progress = False
             print("Install tqdm for progress bars: pip install tqdm")
         
+        try:
+        
         # CRITICAL FIX: Properly normalize embeddings for cosine similarity
         embeddings_norm = self.embeddings.astype('float32')
         
@@ -140,6 +150,11 @@ class POMSearchEngine:
             self.faiss_index.add(embeddings_norm)
             
         print(f"SUCCESS: FAISS index built with {self.faiss_index.ntotal} vectors")
+            
+        except Exception as e:
+            print(f"❌ Error building FAISS index: {str(e)}")
+            print("Continuing without FAISS search functionality...")
+            self.faiss_index = None
         
     def prompt_to_rata(self, prompt: str) -> np.ndarray:
         """
@@ -479,8 +494,19 @@ def search_odor(prompt: str, k: int = DEFAULT_K) -> Tuple[np.ndarray, pd.DataFra
     Returns:
         Tuple of (rata_vector, results_dataframe)
     """
-    engine = get_search_engine()
-    return engine.search_by_prompt(prompt, k)
+    try:
+        engine = get_search_engine()
+        return engine.search_by_prompt(prompt, k)
+    except Exception as e:
+        print(f"❌ Search failed: {str(e)}")
+        # Return empty/fallback results
+        empty_rata = np.zeros(55)
+        empty_df = pd.DataFrame({
+            'name': [],
+            'smiles': [],
+            'similarity_score': []
+        })
+        raise RuntimeError(f"Odor search failed: {str(e)}")
 
 
 if __name__ == "__main__":

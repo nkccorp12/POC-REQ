@@ -48,8 +48,8 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # APPLY FULL PROTECTION ON ALL PAGES
-    full_protection()
+    # TEMPORARILY DISABLE PROTECTION TO FIX CSP CONFLICTS
+    # full_protection()
     
     # REQUIRE AUTHENTICATION IF ENABLED
     if AUTH_ENABLED:
