@@ -8,13 +8,23 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.express as px
-from rdkit import Chem
-from rdkit.Chem import Draw
 from PIL import Image
 import io
 from typing import List, Optional, Tuple
+import streamlit as st
 
 from config import PANEL_WORDS, RADAR_FIGSIZE, MOLECULE_IMAGE_SIZE
+
+# Lazy loading of RDKit to prevent crashes
+def _get_rdkit():
+    """Lazy load RDKit only when needed"""
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import Draw
+        return Chem, Draw
+    except ImportError as e:
+        st.error(f"RDKit not available: {str(e)}")
+        return None, None
 
 
 def create_radar_chart_matplotlib(rata_vector: np.ndarray, 
@@ -135,10 +145,11 @@ def create_radar_chart_plotly(rata_vector: np.ndarray,
     return fig
 
 
+@st.cache_data
 def render_molecule_structure(smiles: str, 
                             size: Tuple[int, int] = MOLECULE_IMAGE_SIZE) -> Optional[Image.Image]:
     """
-    Render molecule structure from SMILES string
+    Render molecule structure from SMILES string (with caching and lazy loading)
     
     Args:
         smiles: SMILES representation of molecule
@@ -148,6 +159,11 @@ def render_molecule_structure(smiles: str,
         PIL Image object or None if invalid SMILES
     """
     try:
+        # Lazy load RDKit
+        Chem, Draw = _get_rdkit()
+        if Chem is None or Draw is None:
+            return None
+            
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return None
@@ -161,11 +177,12 @@ def render_molecule_structure(smiles: str,
         return None
 
 
+@st.cache_data
 def create_molecule_grid(molecules_df: pd.DataFrame, 
                         max_molecules: int = 9,
                         mols_per_row: int = 3) -> Optional[Image.Image]:
     """
-    Create a grid of molecule structures
+    Create a grid of molecule structures (with caching and lazy loading)
     
     Args:
         molecules_df: DataFrame with 'smiles' column
@@ -176,6 +193,11 @@ def create_molecule_grid(molecules_df: pd.DataFrame,
         PIL Image with molecule grid or None if error
     """
     try:
+        # Lazy load RDKit
+        Chem, Draw = _get_rdkit()
+        if Chem is None or Draw is None:
+            return None
+            
         # Limit molecules
         df = molecules_df.head(max_molecules).copy()
         

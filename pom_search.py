@@ -9,6 +9,7 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple, Optional
 import os
+import streamlit as st
 
 from config import (
     PANEL_WORDS, EMBEDDINGS_FILE, MOLECULES_FILE, FAISS_INDEX_FILE,
@@ -17,6 +18,32 @@ from config import (
 )
 
 # Removed German dictionary - system now works with English only
+
+@st.cache_resource
+def load_faiss_index_cached(embeddings_file: str, molecules_file: str):
+    """Cache FAISS index and embeddings to prevent rebuilding on every run"""
+    print("Loading cached FAISS index and embeddings...")
+    
+    # Load embeddings
+    embeddings = np.load(embeddings_file)
+    print(f"Loaded embeddings: {embeddings.shape}")
+    
+    # Normalize for cosine similarity
+    embeddings_norm = embeddings.astype('float32').copy()
+    faiss.normalize_L2(embeddings_norm)
+    
+    # Create and populate index
+    index = faiss.IndexFlatIP(embeddings.shape[1])
+    index.add(embeddings_norm)
+    
+    print(f"FAISS index built with {index.ntotal} vectors")
+    return index, embeddings
+
+@st.cache_resource  
+def load_sentence_model_cached(model_name: str):
+    """Cache sentence transformer model"""
+    print(f"Loading cached sentence transformer: {model_name}")
+    return SentenceTransformer(model_name)
 
 
 class POMSearchEngine:
@@ -32,21 +59,21 @@ class POMSearchEngine:
         print("Initializing POM Search Engine...")
         
         try:
-            # Load sentence transformer
+            # Load sentence transformer (cached)
             print("Loading sentence transformer model...")
-            self.sentence_model = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
+            self.sentence_model = load_sentence_model_cached(SENTENCE_TRANSFORMER_MODEL)
             
             # Create panel word embeddings matrix
             print("Creating panel word embeddings...")
             self._create_panel_embeddings()
             
-            # Load POM embeddings and molecule data
-            print("Loading POM embeddings and molecule data...")
-            self._load_data()
+            # Load molecule data
+            print("Loading molecule data...")
+            self._load_molecule_data()
             
-            # Load or build FAISS index
+            # Load or build FAISS index (cached)
             print("Loading FAISS index...")
-            self._load_or_build_faiss_index()
+            self.faiss_index, self.embeddings = load_faiss_index_cached(EMBEDDINGS_FILE, MOLECULES_FILE)
             
             print("Initialization complete!")
             
@@ -61,6 +88,14 @@ class POMSearchEngine:
         """Create embeddings for the 55 panel words"""
         panel_vecs = self.sentence_model.encode(PANEL_WORDS)  # Shape: (55, model_dim)
         self.panel_embeddings = panel_vecs.T  # Shape: (model_dim, 55)
+        
+    def _load_molecule_data(self):
+        """Load molecule metadata only (embeddings handled by cached function)"""
+        if not os.path.exists(MOLECULES_FILE):
+            raise FileNotFoundError(f"Molecules file not found: {MOLECULES_FILE}")
+            
+        self.molecules_df = pd.read_csv(MOLECULES_FILE)
+        print(f"Loaded {len(self.molecules_df)} molecules")
         
     def _load_data(self):
         """Load embeddings and molecule metadata"""

@@ -4,6 +4,16 @@ Interactive odor search with radar charts and molecule visualization
 PROTECTED VERSION with Authentication and Code Protection
 """
 
+import os
+# BLAS/NumPy/FAISS Threads - Fix threading issues causing crashes
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["FAISS_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -30,6 +40,15 @@ from config import PANEL_WORDS, DEFAULT_K, MAX_K, AUTH_ENABLED
 # Import security modules
 from auth import require_auth, get_current_user, logout, is_authenticated
 from protection import full_protection
+
+# Control threading after imports
+try:
+    import torch
+    import faiss
+    torch.set_num_threads(1)
+    faiss.omp_set_num_threads(1)
+except ImportError:
+    pass  # These might not be directly available, modules will handle it
 
 
 def get_base64_image(image_path):
