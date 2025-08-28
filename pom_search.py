@@ -108,48 +108,47 @@ class POMSearchEngine:
             print("Install tqdm for progress bars: pip install tqdm")
         
         try:
-        
-        # CRITICAL FIX: Properly normalize embeddings for cosine similarity
-        embeddings_norm = self.embeddings.astype('float32')
-        
-        # Debug original norms
-        original_norms = [np.linalg.norm(emb) for emb in embeddings_norm[:3]]
-        print(f"   Original DB embedding norms: {[f'{norm:.4f}' for norm in original_norms]}")
-        
-        if use_progress:
-            print("L2 Normalizing database embeddings to unit norm...")
-            with tqdm(total=len(embeddings_norm), desc="L2 Normalizing", unit="vectors") as pbar:
+            # CRITICAL FIX: Properly normalize embeddings for cosine similarity
+            embeddings_norm = self.embeddings.astype('float32')
+            
+            # Debug original norms
+            original_norms = [np.linalg.norm(emb) for emb in embeddings_norm[:3]]
+            print(f"   Original DB embedding norms: {[f'{norm:.4f}' for norm in original_norms]}")
+            
+            if use_progress:
+                print("L2 Normalizing database embeddings to unit norm...")
+                with tqdm(total=len(embeddings_norm), desc="L2 Normalizing", unit="vectors") as pbar:
+                    faiss.normalize_L2(embeddings_norm)
+                    pbar.update(len(embeddings_norm))
+            else:
+                print("L2 Normalizing database embeddings...")
                 faiss.normalize_L2(embeddings_norm)
-                pbar.update(len(embeddings_norm))
-        else:
-            print("L2 Normalizing database embeddings...")
-            faiss.normalize_L2(embeddings_norm)
-        
-        # Debug normalized norms
-        normalized_norms = [np.linalg.norm(emb) for emb in embeddings_norm[:3]]
-        print(f"   Normalized DB embedding norms: {[f'{norm:.4f}' for norm in normalized_norms]}")
-        print(f"   SUCCESS: Database embeddings now have unit norm")
-        
-        # Create index (testing IndexFlatIP for direct cosine similarity)
-        print(f"BUILDING: Creating FAISS index...")
-        # Tested IndexFlatIP vs IndexFlatL2 for direct cosine on normalized vectors
-        self.faiss_index = faiss.IndexFlatIP(POM_DIMENSIONS)  # Inner Product = Cosine similarity for normalized vectors
-        
-        # Add embeddings with optional progress bar
-        if use_progress:
-            batch_size = 1000
-            total_batches = (len(embeddings_norm) + batch_size - 1) // batch_size
             
-            with tqdm(total=total_batches, desc="Building index", unit="batch") as pbar:
-                for i in range(0, len(embeddings_norm), batch_size):
-                    batch = embeddings_norm[i:i + batch_size]
-                    self.faiss_index.add(batch)
-                    pbar.update(1)
-        else:
-            print("Adding embeddings to index...")
-            self.faiss_index.add(embeddings_norm)
+            # Debug normalized norms
+            normalized_norms = [np.linalg.norm(emb) for emb in embeddings_norm[:3]]
+            print(f"   Normalized DB embedding norms: {[f'{norm:.4f}' for norm in normalized_norms]}")
+            print(f"   SUCCESS: Database embeddings now have unit norm")
             
-        print(f"SUCCESS: FAISS index built with {self.faiss_index.ntotal} vectors")
+            # Create index (testing IndexFlatIP for direct cosine similarity)
+            print(f"BUILDING: Creating FAISS index...")
+            # Tested IndexFlatIP vs IndexFlatL2 for direct cosine on normalized vectors
+            self.faiss_index = faiss.IndexFlatIP(POM_DIMENSIONS)  # Inner Product = Cosine similarity for normalized vectors
+            
+            # Add embeddings with optional progress bar
+            if use_progress:
+                batch_size = 1000
+                total_batches = (len(embeddings_norm) + batch_size - 1) // batch_size
+                
+                with tqdm(total=total_batches, desc="Building index", unit="batch") as pbar:
+                    for i in range(0, len(embeddings_norm), batch_size):
+                        batch = embeddings_norm[i:i + batch_size]
+                        self.faiss_index.add(batch)
+                        pbar.update(1)
+            else:
+                print("Adding embeddings to index...")
+                self.faiss_index.add(embeddings_norm)
+                
+            print(f"SUCCESS: FAISS index built with {self.faiss_index.ntotal} vectors")
             
         except Exception as e:
             print(f"❌ Error building FAISS index: {str(e)}")
