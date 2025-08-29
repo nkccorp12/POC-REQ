@@ -9,7 +9,13 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple, Optional
 import os
+import threading
 import streamlit as st
+
+try:
+    import torch
+except Exception:
+    torch = None
 
 from config import (
     PANEL_WORDS, EMBEDDINGS_FILE, MOLECULES_FILE, FAISS_INDEX_FILE,
@@ -18,6 +24,10 @@ from config import (
 )
 
 # Removed German dictionary - system now works with English only
+
+# Global singleton for model loading with thread safety
+_MODEL_SINGLETON = None
+_MODEL_LOCK = threading.Lock()
 
 @st.cache_resource
 def load_faiss_index_cached(embeddings_file: str, molecules_file: str):
@@ -41,9 +51,22 @@ def load_faiss_index_cached(embeddings_file: str, molecules_file: str):
 
 @st.cache_resource  
 def load_sentence_model_cached(model_name: str):
-    """Cache sentence transformer model"""
-    print(f"Loading cached sentence transformer: {model_name}")
-    return SentenceTransformer(model_name)
+    """Cache + singleton sentence transformer model (offline-first)."""
+    global _MODEL_SINGLETON
+    with _MODEL_LOCK:
+        if _MODEL_SINGLETON is None:
+            local_dir = os.getenv("SENTENCE_MODEL_DIR", "/app/models/all-MiniLM-L6-v2")
+            use_path = local_dir if os.path.isdir(local_dir) else model_name
+            print(f"Loading SentenceTransformer from: {use_path}")
+            m = SentenceTransformer(use_path, device="cpu")
+            # Threads hart begrenzen (Free Tier)
+            if torch is not None:
+                try: 
+                    torch.set_num_threads(1)
+                except Exception: 
+                    pass
+            _MODEL_SINGLETON = m
+        return _MODEL_SINGLETON
 
 
 class POMSearchEngine:
@@ -60,7 +83,7 @@ class POMSearchEngine:
         
         try:
             # Load sentence transformer (cached)
-            print("Loading sentence transformer model...")
+            print("Loading sentence transformer model (cached/singleton)...")
             self.sentence_model = load_sentence_model_cached(SENTENCE_TRANSFORMER_MODEL)
             
             # Create panel word embeddings matrix

@@ -22,7 +22,14 @@ MOLECULES_FILE = f"{DATA_DIR}/molecules.csv"
 FAISS_INDEX_FILE = f"{DATA_DIR}/faiss_index.bin"
 
 # Model configuration
-SENTENCE_TRANSFORMER_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+import os
+# Repo-ID kann via ENV überschrieben werden
+SENTENCE_TRANSFORMER_MODEL = os.getenv(
+    "SENTENCE_MODEL",
+    "sentence-transformers/all-MiniLM-L6-v2"
+)
+# Lokaler Modellpfad (vom Dockerfile befüllt)
+SENTENCE_MODEL_DIR = os.getenv("SENTENCE_MODEL_DIR", "/app/models/all-MiniLM-L6-v2")
 POM_DIMENSIONS = 55  # 55D RATA dimensions from Lee et al. Science paper
 RATA_DIMENSIONS = 55
 
