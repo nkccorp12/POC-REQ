@@ -1,5 +1,6 @@
 streamlit>=1.42
-torch>=2.2,<3
+# Torch wird im Dockerfile als CPU-Wheel installiert (2.4.1+cpu).
+# Bitte hier NICHT erneut installieren lassen.
 sentence-transformers==2.7.0
 faiss-cpu==1.8.0
 pandas==2.2.0

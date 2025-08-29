@@ -8,20 +8,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY requirements.txt .
+
+# 1) Torch CPU-Wheel vorab installieren, damit keine CUDA-Pakete kommen
+#    (danach normale Deps; pip lässt das CPU-Torch in Ruhe)
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.4.1+cpu
+
+# 2) Restliche Deps
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Sicherstellen, dass huggingface_hub vorhanden ist (unabhängig von requirements timing)
-RUN python3 -m pip install --no-cache-dir --upgrade pip && \
-    python3 -m pip install --no-cache-dir "huggingface_hub==0.25.2"
+# 3) huggingface_hub sicher vorhanden (unabhängig vom req-Resolver)
+RUN python3 -m pip install --no-cache-dir "huggingface_hub==0.25.2"
 
 COPY . .
 
-# ---- Offline/Thread ENV + HF Caches ----
+# ---- HF Pfade (OHNE offline), Threads etc. ----
 ENV SENTENCE_MODEL="sentence-transformers/all-MiniLM-L6-v2" \
     SENTENCE_MODEL_DIR="/app/models/all-MiniLM-L6-v2" \
     HF_HOME="/app/hf_cache" \
     TRANSFORMERS_CACHE="/app/hf_cache" \
-    TRANSFORMERS_OFFLINE=1 \
     HF_HUB_DISABLE_TELEMETRY=1 \
     OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
@@ -31,13 +36,13 @@ ENV SENTENCE_MODEL="sentence-transformers/all-MiniLM-L6-v2" \
     TOKENIZERS_PARALLELISM=false \
     STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
 
-# ---- Modell in der Build-Phase cachen (mit aussagekräftigem Error Handling) ----
-RUN python3 - <<'PY' || { echo "=== HF snapshot failed ==="; exit 1; }
+# 4) Modell WÄHREND DES BUILDS cachen – OFFLINE AUS!
+RUN HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 python3 - <<'PY' || { echo "=== HF snapshot failed ==="; exit 1; }
 from huggingface_hub import snapshot_download
 import os, sys, traceback
 
-repo = os.environ.get("SENTENCE_MODEL")
-dst  = os.environ.get("SENTENCE_MODEL_DIR")
+repo = os.environ["SENTENCE_MODEL"]
+dst  = os.environ["SENTENCE_MODEL_DIR"]
 
 print(f"🔄 Caching model: {repo} -> {dst}")
 
@@ -66,7 +71,10 @@ except Exception as e:
 
 PY
 
-# Expose (Render nimmt $PORT)
+# 5) JETZT offline für die Laufzeit aktivieren
+ENV TRANSFORMERS_OFFLINE=1 HF_HUB_OFFLINE=1
+
+# Expose port (Render nutzt $PORT)
 EXPOSE 8080
 
 # Start Streamlit app using Render's PORT environment variable
