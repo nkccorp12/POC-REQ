@@ -51,21 +51,45 @@ def load_faiss_index_cached(embeddings_file: str, molecules_file: str):
 
 @st.cache_resource  
 def load_sentence_model_cached(model_name: str):
-    """Cache + singleton sentence transformer model (offline-first)."""
+    """Cache + singleton sentence transformer model (offline-first with smart fallback)."""
     global _MODEL_SINGLETON
     with _MODEL_LOCK:
         if _MODEL_SINGLETON is None:
             local_dir = os.getenv("SENTENCE_MODEL_DIR", "/app/models/all-MiniLM-L6-v2")
-            use_path = local_dir if os.path.isdir(local_dir) else model_name
-            print(f"Loading SentenceTransformer from: {use_path}")
-            m = SentenceTransformer(use_path, device="cpu")
-            # Threads hart begrenzen (Free Tier)
-            if torch is not None:
-                try: 
-                    torch.set_num_threads(1)
-                except Exception: 
-                    pass
-            _MODEL_SINGLETON = m
+            
+            # Smart path selection with validation
+            if os.path.isdir(local_dir) and len(os.listdir(local_dir)) > 0:
+                use_path = local_dir
+                print(f"✅ Loading from cached model: {use_path}")
+            else:
+                use_path = model_name
+                print(f"⚠️ Local model dir missing or empty, falling back to repo ID: {model_name}")
+                if os.path.isdir(local_dir):
+                    files = os.listdir(local_dir)
+                    print(f"   Cache dir exists but has {len(files)} files: {files[:3]}")
+                else:
+                    print(f"   Cache dir does not exist: {local_dir}")
+            
+            try:
+                print(f"🔄 Initializing SentenceTransformer...")
+                m = SentenceTransformer(use_path, device="cpu")
+                
+                # Threads hart begrenzen (Free Tier)
+                if torch is not None:
+                    try: 
+                        torch.set_num_threads(1)
+                        print("✅ Set torch threads to 1")
+                    except Exception as e:
+                        print(f"⚠️ Could not set torch threads: {e}")
+                
+                _MODEL_SINGLETON = m
+                print(f"✅ Model loaded successfully: {m.get_sentence_embedding_dimension()}D")
+                
+            except Exception as e:
+                print(f"❌ Failed to load SentenceTransformer from {use_path}")
+                print(f"   Error: {type(e).__name__}: {e}")
+                raise RuntimeError(f"Could not load sentence transformer: {e}")
+        
         return _MODEL_SINGLETON
 
 

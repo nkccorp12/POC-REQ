@@ -11,4 +11,4 @@ Pillow==10.2.0
 tqdm==4.66.1
 reportlab==4.0.4
 scikit-learn==1.4.0
-huggingface_hub>=0.25.0
+huggingface_hub==0.25.2
